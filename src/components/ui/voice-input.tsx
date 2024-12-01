@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,107 +13,86 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>("");
 
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
-  const mediaStream = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const startRecording = async () => {
+  const cleanup = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current = null;
+    }
+    chunksRef.current = [];
+  }, []);
+
+  const handleStartRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
+      cleanup();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-      mediaStream.current = stream;
-      mediaRecorder.current = new MediaRecorder(stream, {
-        mimeType: "audio/webm",
-      });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
 
-      mediaRecorder.current.ondataavailable = (event) => {
+      recorder.addEventListener("dataavailable", (event) => {
         if (event.data.size > 0) {
-          audioChunks.current.push(event.data);
+          chunksRef.current.push(event.data);
         }
-      };
+      });
 
-      mediaRecorder.current.onstop = async () => {
-        setIsProcessing(true);
+      recorder.addEventListener("stop", async () => {
         try {
-          const audioBlob = new Blob(audioChunks.current, {
-            type: "audio/webm",
+          setIsProcessing(true);
+          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          const formData = new FormData();
+          formData.append("audio", blob);
+
+          const response = await fetch("/api/transcribe", {
+            method: "POST",
+            body: formData,
           });
-          await processAudio(audioBlob);
+
+          if (!response.ok) throw new Error("Transcription failed");
+          const data = await response.json();
+          onTranscriptUpdate(data.transcript);
         } catch (err) {
           setError("Failed to process audio");
+          console.error(err);
         } finally {
           setIsProcessing(false);
-          // Clear the chunks for next recording
-          audioChunks.current = [];
-          // Stop and cleanup mediaStream
-          if (mediaStream.current) {
-            mediaStream.current.getTracks().forEach((track) => track.stop());
-            mediaStream.current = null;
-          }
+          cleanup();
         }
-      };
+      });
 
-      mediaRecorder.current.start(1000);
+      recorder.start();
       setIsRecording(true);
-      setError("");
     } catch (err) {
-      setError("Microphone permission denied");
-      setIsRecording(false);
+      console.error(err);
+      setError("Failed to start recording");
+      cleanup();
     }
   };
 
-  const processAudio = async (audioBlob: Blob) => {
-    const formData = new FormData();
-    formData.append("audio", audioBlob, "recording.webm");
-
-    const response = await fetch("/api/transcribe", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to transcribe audio");
-    }
-
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
-
-    onTranscriptUpdate(data.transcript);
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
+  const handleStopRecording = () => {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
+      mediaRecorderRef.current.stop();
       setIsRecording(false);
-      // Stop and cleanup mediaStream immediately
-      if (mediaStream.current) {
-        mediaStream.current.getTracks().forEach((track) => track.stop());
-        mediaStream.current = null;
-      }
     }
   };
 
   const toggleRecording = () => {
     if (isRecording) {
-      stopRecording();
+      handleStopRecording();
     } else {
-      startRecording();
+      handleStartRecording();
     }
   };
-
-  if (error) {
-    return (
-      <Alert>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
 
   const buttonClasses = cn(
     "w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium transition-all",
@@ -125,6 +104,14 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     },
     "disabled:opacity-50"
   );
+
+  if (error) {
+    return (
+      <Alert className="h-full">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="h-full relative">
