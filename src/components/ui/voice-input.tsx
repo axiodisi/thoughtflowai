@@ -1,33 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
 }
 
-type WebkitSpeechRecognition = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  onresult: (event: any) => void;
-  onend: () => void;
-  start: () => void;
-  stop: () => void;
-};
-
 export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>("");
-  const [fullTranscript, setFullTranscript] = useState("");
 
-  const toggleRecording = async () => {
-    if (isRecording) {
-      setIsRecording(false);
-      return;
-    }
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const audioChunks = useRef<Blob[]>([]);
 
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -37,41 +25,77 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
         },
       });
 
-      const SpeechRecognitionAPI = (window as any).webkitSpeechRecognition;
-      if (!SpeechRecognitionAPI) {
-        setError("Speech recognition not supported");
-        return;
-      }
+      mediaRecorder.current = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
 
-      const recognition = new SpeechRecognitionAPI() as WebkitSpeechRecognition;
-      recognition.lang = "en-US";
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        const newTranscript = fullTranscript + " " + transcript;
-        setFullTranscript(newTranscript.trim());
-        onTranscriptUpdate(newTranscript.trim());
-      };
-
-      recognition.onend = () => {
-        // Only restart if we're still meant to be recording
-        if (isRecording) {
-          try {
-            recognition.start();
-          } catch (e) {
-            setIsRecording(false);
-          }
+      mediaRecorder.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.current.push(event.data);
         }
       };
 
-      recognition.start();
+      mediaRecorder.current.onstop = async () => {
+        setIsProcessing(true);
+        try {
+          const audioBlob = new Blob(audioChunks.current, {
+            type: "audio/webm",
+          });
+          await processAudio(audioBlob);
+        } catch (err) {
+          setError("Failed to process audio");
+        } finally {
+          setIsProcessing(false);
+        }
+
+        // Clear the chunks for next recording
+        audioChunks.current = [];
+
+        // Stop all tracks in the stream
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.current.start(1000); // Collect data every second
       setIsRecording(true);
       setError("");
     } catch (err) {
       setError("Microphone permission denied");
       setIsRecording(false);
+    }
+  };
+
+  const processAudio = async (audioBlob: Blob) => {
+    // Convert webm to mp3 if needed
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "recording.webm");
+
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to transcribe audio");
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    onTranscriptUpdate(data.transcript);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const toggleRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
     }
   };
 
@@ -89,8 +113,14 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
         onClick={toggleRecording}
         variant={isRecording ? "destructive" : "default"}
         size="default"
+        disabled={isProcessing}
       >
-        {isRecording ? (
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : isRecording ? (
           <>
             <MicOff className="mr-2 h-4 w-4" />
             Stop Recording
