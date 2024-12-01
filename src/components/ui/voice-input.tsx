@@ -7,6 +7,16 @@ interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
 }
 
+type WebkitSpeechRecognition = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: (event: any) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+};
+
 export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string>("");
@@ -27,13 +37,13 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
         },
       });
 
-      const SpeechRecognitionAPI = window.webkitSpeechRecognition;
+      const SpeechRecognitionAPI = (window as any).webkitSpeechRecognition;
       if (!SpeechRecognitionAPI) {
         setError("Speech recognition not supported");
         return;
       }
 
-      const recognition = new SpeechRecognitionAPI();
+      const recognition = new SpeechRecognitionAPI() as WebkitSpeechRecognition;
       recognition.lang = "en-US";
       recognition.continuous = false;
       recognition.interimResults = false;
