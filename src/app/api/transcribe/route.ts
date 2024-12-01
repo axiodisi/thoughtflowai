@@ -2,6 +2,10 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
+// New way to configure route options in Next.js App Router
+export const runtime = "edge";
+export const maxDuration = 30;
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -25,7 +29,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create a File object that OpenAI's SDK expects
     const file = new File([audioFile], "audio.webm", { type: audioFile.type });
 
     const response = await openai.audio.transcriptions.create({
@@ -43,9 +46,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
