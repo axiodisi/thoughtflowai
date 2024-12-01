@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 
 interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
@@ -12,59 +11,82 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>("");
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(
-    null
-  );
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const audioChunks = useRef<Blob[]>([]);
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
 
-      recorder.ondataavailable = (event) => {
+      mediaRecorder.current = new MediaRecorder(stream, {
+        mimeType: "audio/webm",
+      });
+
+      mediaRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          setAudioChunks((prev) => [...prev, event.data]);
+          audioChunks.current.push(event.data);
         }
       };
 
-      recorder.onstop = async () => {
+      mediaRecorder.current.onstop = async () => {
         setIsProcessing(true);
         try {
-          const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-          const formData = new FormData();
-          formData.append("audio", audioBlob, "recording.webm");
-
-          const response = await fetch("/api/transcribe", {
-            method: "POST",
-            body: formData,
+          const audioBlob = new Blob(audioChunks.current, {
+            type: "audio/webm",
           });
-
-          if (!response.ok) throw new Error("Failed to transcribe audio");
-          const data = await response.json();
-          onTranscriptUpdate(data.transcript);
+          await processAudio(audioBlob);
         } catch (err) {
           setError("Failed to process audio");
         } finally {
           setIsProcessing(false);
-          setAudioChunks([]);
-          stream.getTracks().forEach((track) => track.stop());
         }
+
+        // Clear the chunks for next recording
+        audioChunks.current = [];
+
+        // Stop all tracks in the stream
+        stream.getTracks().forEach((track) => track.stop());
       };
 
-      recorder.start();
-      setMediaRecorder(recorder);
+      mediaRecorder.current.start(1000); // Collect data every second
       setIsRecording(true);
+      setError("");
     } catch (err) {
       setError("Microphone permission denied");
+      setIsRecording(false);
     }
   };
 
+  const processAudio = async (audioBlob: Blob) => {
+    const formData = new FormData();
+    formData.append("audio", audioBlob, "recording.webm");
+
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to transcribe audio");
+    }
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+
+    onTranscriptUpdate(data.transcript);
+  };
+
   const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
       setIsRecording(false);
-      setMediaRecorder(null);
     }
   };
 
@@ -84,21 +106,12 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     );
   }
 
-  const buttonClasses = cn(
-    "w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium",
-    {
-      "bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90":
-        !isRecording,
-      "bg-gradient-to-r from-red-800 via-red-700 to-red-600": isRecording,
-    },
-    "disabled:opacity-50"
-  );
-
   return (
     <div className="h-full">
       <Button
         onClick={toggleRecording}
-        className={buttonClasses}
+        variant="default"
+        className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90 transition-opacity disabled:opacity-50"
         disabled={isProcessing}
       >
         {isProcessing ? (
