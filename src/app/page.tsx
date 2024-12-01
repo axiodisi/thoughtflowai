@@ -1,101 +1,121 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { AlertCircle, Loader2, Send } from "lucide-react";
+import { VoiceInput } from "@/components/ui/voice-input";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [input, setInput] = useState("");
+  const [refinedText, setRefinedText] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    setIsProcessing(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to process text");
+
+      setRefinedText(data.refined);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    setInput((prevInput) => {
+      // If there's existing input, add a space before the new text
+      const separator = prevInput.trim() ? " " : "";
+      return prevInput + separator + text;
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-black p-4 flex items-center justify-center">
+      <div className="w-full max-w-2xl bg-zinc-900 rounded-3xl border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.1)]">
+        <div className="p-6 border-b border-zinc-800">
+          <h1 className="text-2xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text">
+            Thought Refiner
+          </h1>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        <div className="p-6 space-y-6">
+          <div className="bg-zinc-800/50 rounded-2xl p-4 flex gap-3 border border-zinc-700/30">
+            <AlertCircle className="h-5 w-5 shrink-0 mt-0.5 text-orange-500" />
+            <p className="text-sm text-zinc-300">
+              Your input is processed securely and not stored. Feel free to
+              express yourself freely.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-4">
+              <textarea
+                placeholder="Get it all out... Type (or paste) your raw thoughts here. Don't worry about formatting or clarity - just let it flow."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="w-full min-h-[160px] rounded-2xl bg-zinc-800/50 border border-zinc-700/30 p-4 text-base text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-500/30 transition-all"
+              />
+
+              <div className="p-4 bg-zinc-800/50 rounded-2xl border border-zinc-700/30">
+                <h3 className="text-sm font-medium text-zinc-400 mb-3">
+                  Or use voice input:
+                </h3>
+                <VoiceInput onTranscriptComplete={handleVoiceTranscript} />
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={!input.trim() || isProcessing}
+                className="group flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:pointer-events-none transition-all"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Refining</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                    <span>Refine</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {error && (
+            <div className="bg-zinc-800/50 text-pink-400 rounded-2xl p-4 flex gap-3 border border-zinc-700/30">
+              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {refinedText && (
+            <div className="bg-zinc-800/50 rounded-2xl p-4 border border-zinc-700/30">
+              <h3 className="text-lg font-medium mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+                Refined Version:
+              </h3>
+              <p className="text-zinc-300 leading-relaxed">{refinedText}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
