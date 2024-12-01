@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
@@ -48,14 +49,11 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           setIsProcessing(false);
         }
 
-        // Clear the chunks for next recording
         audioChunks.current = [];
-
-        // Stop all tracks in the stream
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorder.current.start(1000); // Collect data every second
+      mediaRecorder.current.start(1000);
       setIsRecording(true);
       setError("");
     } catch (err) {
@@ -106,12 +104,22 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     );
   }
 
+  const buttonClasses = cn(
+    "w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium transition-all",
+    {
+      "bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90":
+        !isRecording,
+      "bg-gradient-to-r from-red-800 via-red-700 to-red-600 animate-pulse":
+        isRecording,
+    },
+    "disabled:opacity-50"
+  );
+
   return (
-    <div className="h-full">
+    <div className="h-full relative">
       <Button
         onClick={toggleRecording}
-        variant={isRecording ? "destructive" : "default"}
-        className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90 transition-opacity disabled:opacity-50"
+        className={buttonClasses}
         disabled={isProcessing}
       >
         {isProcessing ? (
@@ -131,6 +139,9 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           </>
         )}
       </Button>
+      {isRecording && (
+        <div className="absolute top-0 left-0 w-full h-full rounded-2xl animate-ping bg-red-500/20" />
+      )}
     </div>
   );
 };
