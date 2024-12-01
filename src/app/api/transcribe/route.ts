@@ -16,17 +16,20 @@ export async function POST(req: Request) {
 
   try {
     const formData = await req.formData();
-    const audioFile = formData.get("audio") as File;
+    const audioFile = formData.get("audio");
 
-    if (!audioFile) {
+    if (!audioFile || !(audioFile instanceof Blob)) {
       return NextResponse.json(
         { error: "No audio file provided" },
         { status: 400 }
       );
     }
 
+    // Create a File object that OpenAI's SDK expects
+    const file = new File([audioFile], "audio.webm", { type: audioFile.type });
+
     const response = await openai.audio.transcriptions.create({
-      file: audioFile,
+      file: file,
       model: "whisper-1",
       language: "en",
     });
@@ -40,3 +43,9 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
