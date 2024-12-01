@@ -5,8 +5,9 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Word Vomit Refiner",
+  title: "ThoughtFlow AI",
   description: "Refine your stream of consciousness into clear communication",
+  viewport: "width=device-width, initial-scale=1, maximum-scale=1", // Add it here in metadata
 };
 
 export default function RootLayout({
@@ -16,6 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1"
+        />
+      </head>
       <body className={inter.className}>{children}</body>
     </html>
   );
