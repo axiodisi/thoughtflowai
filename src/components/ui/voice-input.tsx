@@ -15,6 +15,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
 
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+  const mediaStream = useRef<MediaStream | null>(null);
 
   const startRecording = async () => {
     try {
@@ -26,6 +27,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
         },
       });
 
+      mediaStream.current = stream;
       mediaRecorder.current = new MediaRecorder(stream, {
         mimeType: "audio/webm",
       });
@@ -47,10 +49,14 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           setError("Failed to process audio");
         } finally {
           setIsProcessing(false);
+          // Clear the chunks for next recording
+          audioChunks.current = [];
+          // Stop and cleanup mediaStream
+          if (mediaStream.current) {
+            mediaStream.current.getTracks().forEach((track) => track.stop());
+            mediaStream.current = null;
+          }
         }
-
-        audioChunks.current = [];
-        stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.current.start(1000);
@@ -85,6 +91,11 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     if (mediaRecorder.current && isRecording) {
       mediaRecorder.current.stop();
       setIsRecording(false);
+      // Stop and cleanup mediaStream immediately
+      if (mediaStream.current) {
+        mediaStream.current.getTracks().forEach((track) => track.stop());
+        mediaStream.current = null;
+      }
     }
   };
 
