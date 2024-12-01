@@ -33,24 +33,23 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-500/20" />
+      <div className="fixed inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-500/20" />
 
-      <main className="absolute inset-0 flex flex-col p-8">
-        <h1 className="text-4xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text mb-6">
+      <main className="fixed inset-0 flex flex-col p-8">
+        <h1 className="text-4xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text">
           Thought Refiner
         </h1>
 
-        <div className="bg-zinc-900/80 rounded-2xl p-4 flex gap-4 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] mb-6">
-          <AlertCircle className="h-6 w-6 shrink-0 text-orange-500" />
-          <p className="text-base text-zinc-200">
-            Your input is processed securely and not stored. Feel free to
-            express yourself freely.
-          </p>
-        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
+          <div className="bg-zinc-900/80 rounded-2xl p-4 flex gap-4 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)]">
+            <AlertCircle className="h-6 w-6 shrink-0 text-orange-500" />
+            <p className="text-base text-zinc-200">
+              Your input is processed securely and not stored. Feel free to
+              express yourself freely.
+            </p>
+          </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-          {/* Input area - fixed small height */}
-          <div className="h-[20vh]">
+          <div className="h-[25vh]">
             <textarea
               placeholder="Get it all out... Type (or paste) your raw thoughts here. Don't worry about formatting or clarity - just let it flow."
               value={input}
@@ -59,28 +58,29 @@ export default function Home() {
             />
           </div>
 
-          {/* Output area - fixed position above buttons */}
-          <div className="flex-1 my-6 overflow-auto">
-            {refinedText && (
-              <div className="w-full h-full rounded-2xl bg-zinc-900/80 p-4 text-base text-zinc-200 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)]">
+          {refinedText && (
+            <div className="h-[25vh]">
+              <div className="h-full rounded-2xl bg-zinc-900/80 p-4 text-base text-zinc-200 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)]">
                 <h3 className="text-xl font-medium bg-gradient-to-r from-pink-500 to-purple-500 inline-block text-transparent bg-clip-text mb-2">
                   Refined Version:
                 </h3>
                 <p className="text-zinc-200">{refinedText}</p>
               </div>
-            )}
-          </div>
-
-          {/* Buttons - fixed at bottom */}
-          <div className="grid grid-cols-2 gap-6 h-32">
-            <div className="h-full">
-              <VoiceInput onTranscriptUpdate={setInput} />
             </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-6 mt-auto pt-4">
+            <button
+              type="button"
+              className="h-32 flex items-center justify-center gap-2 bg-white rounded-xl text-black text-2xl font-medium"
+            >
+              🎤 Record
+            </button>
 
             <button
               type="submit"
               disabled={!input.trim() || isProcessing}
-              className="h-full w-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="h-32 flex items-center justify-center gap-3 rounded-xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isProcessing ? "Refining..." : "Refine"}
             </button>
