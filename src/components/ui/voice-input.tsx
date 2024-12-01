@@ -48,14 +48,11 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           setIsProcessing(false);
         }
 
-        // Clear the chunks for next recording
         audioChunks.current = [];
-
-        // Stop all tracks in the stream
         stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorder.current.start(1000); // Collect data every second
+      mediaRecorder.current.start(1000);
       setIsRecording(true);
       setError("");
     } catch (err) {
@@ -107,7 +104,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   }
 
   return (
-    <div className="h-full">
+    <div className="h-full relative">
       <Button
         onClick={toggleRecording}
         variant="default"
@@ -117,20 +114,26 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
         {isProcessing ? (
           <>
             <Loader2 className="h-6 w-6 animate-spin" />
-            <span>Processing...</span>
+            <span>Converting...</span>
           </>
         ) : isRecording ? (
           <>
             <MicOff className="h-6 w-6" />
-            <span>Stop Recording</span>
+            <span>Stop</span>
           </>
         ) : (
           <>
             <Mic className="h-6 w-6" />
-            <span>Start Recording</span>
+            <span>Speak</span>
           </>
         )}
       </Button>
+      {isRecording && (
+        <div className="absolute top-2 right-2">
+          <div className="h-3 w-3 rounded-full bg-red-500 animate-ping" />
+          <div className="absolute top-0 h-3 w-3 rounded-full bg-red-500" />
+        </div>
+      )}
     </div>
   );
 };
