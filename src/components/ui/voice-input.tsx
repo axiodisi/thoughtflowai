@@ -13,8 +13,14 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [recognition, setRecognition] = useState<any>(null);
   const [fullTranscript, setFullTranscript] = useState("");
   const [lastResultTime, setLastResultTime] = useState<number>(0);
+  const [isMobileChrome, setIsMobileChrome] = useState(false);
 
   useEffect(() => {
+    // Check if we're on Android Chrome
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isChrome = /Chrome/i.test(navigator.userAgent);
+    setIsMobileChrome(isAndroid && isChrome);
+
     if (typeof window !== "undefined") {
       const SpeechRecognitionAPI =
         (window as any).SpeechRecognition ||
@@ -25,8 +31,33 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           const recognitionInstance = new SpeechRecognitionAPI();
           recognitionInstance.continuous = true;
           recognitionInstance.interimResults = false;
+          // Add specific settings for Android
+          if (isAndroid) {
+            recognitionInstance.continuous = false; // Single utterance mode works better on Android
+            recognitionInstance.maxAlternatives = 1;
+          }
+
+          recognitionInstance.onstart = () => {
+            console.log("Recognition started");
+            setIsRecording(true);
+          };
+
+          recognitionInstance.onend = () => {
+            console.log("Recognition ended");
+            // On Android, we need to restart for continuous recording
+            if (isRecording && isAndroid) {
+              try {
+                recognitionInstance.start();
+              } catch (e) {
+                console.log("Restart failed:", e);
+              }
+            } else {
+              setIsRecording(false);
+            }
+          };
 
           recognitionInstance.onresult = (event: any) => {
+            console.log("Got result:", event);
             const transcript =
               event.results[event.results.length - 1][0].transcript;
             const updatedTranscript = fullTranscript + " " + transcript;
@@ -36,12 +67,21 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
           };
 
           recognitionInstance.onerror = (event: any) => {
-            setError(`Microphone error: ${event.error}`);
-            setIsRecording(false);
+            console.error("Recognition error:", event);
+            if (event.error === "no-speech") {
+              // Don't show error for no speech on Android
+              if (!isAndroid) {
+                setError("No speech detected. Please try again.");
+              }
+            } else {
+              setError(`Microphone error: ${event.error}`);
+              setIsRecording(false);
+            }
           };
 
           setRecognition(recognitionInstance);
         } catch (err) {
+          console.error("Init error:", err);
           setError("Failed to initialize speech recognition");
         }
       } else {
@@ -56,19 +96,15 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     if (!isRecording) {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        recognition.start();
-        setIsRecording(true);
+        // Reset error state
         setError("");
+        // Start recognition
+        recognition.start();
       } catch (err) {
+        console.error("Toggle recording error:", err);
         setError("Microphone permission denied");
       }
     } else {
-      const timeSinceLastResult = Date.now() - lastResultTime;
-      if (timeSinceLastResult < 1000) {
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 - timeSinceLastResult)
-        );
-      }
       recognition.stop();
       setIsRecording(false);
     }
@@ -84,6 +120,12 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
 
   return (
     <div>
+      {isMobileChrome && (
+        <p className="text-xs text-zinc-400 mb-2">
+          Note: For best results on Android, speak clearly and pause between
+          phrases
+        </p>
+      )}
       <Button
         onClick={toggleRecording}
         variant={isRecording ? "destructive" : "default"}
