@@ -11,82 +11,57 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string>("");
   const [fullTranscript, setFullTranscript] = useState("");
-  const [currentRecognition, setCurrentRecognition] = useState<any>(null);
 
-  const stopRecording = () => {
-    if (currentRecognition) {
-      currentRecognition.stop();
-      setCurrentRecognition(null);
+  const toggleRecording = async () => {
+    if (isRecording) {
+      setIsRecording(false);
+      return;
     }
-    setIsRecording(false);
-  };
 
-  const startRecording = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
 
-      const SpeechRecognitionAPI =
-        (window as any).webkitSpeechRecognition ||
-        (window as any).SpeechRecognition;
+      const SpeechRecognitionAPI = window.webkitSpeechRecognition;
       if (!SpeechRecognitionAPI) {
         setError("Speech recognition not supported");
         return;
       }
 
       const recognition = new SpeechRecognitionAPI();
-      recognition.continuous = false; // Changed to false for Android
-      recognition.interimResults = true; // Changed to true to get faster feedback
-      recognition.maxAlternatives = 1;
       recognition.lang = "en-US";
-
-      recognition.onstart = () => {
-        console.log("Recognition started");
-        setIsRecording(true);
-      };
+      recognition.continuous = false;
+      recognition.interimResults = false;
 
       recognition.onresult = (event: any) => {
-        console.log("Got result:", event);
-        const transcript =
-          event.results[event.results.length - 1][0].transcript;
+        const transcript = event.results[0][0].transcript;
         const newTranscript = fullTranscript + " " + transcript;
         setFullTranscript(newTranscript.trim());
         onTranscriptUpdate(newTranscript.trim());
       };
 
-      recognition.onerror = (event: any) => {
-        console.error("Recognition error:", event.error);
-        if (event.error !== "no-speech") {
-          setError(`Microphone error: ${event.error}`);
-          setIsRecording(false);
-        }
-      };
-
       recognition.onend = () => {
-        console.log("Recognition ended");
-        // If still recording, start a new session
+        // Only restart if we're still meant to be recording
         if (isRecording) {
-          console.log("Restarting recognition");
-          recognition.start();
-        } else {
-          setIsRecording(false);
+          try {
+            recognition.start();
+          } catch (e) {
+            setIsRecording(false);
+          }
         }
       };
 
-      setCurrentRecognition(recognition);
       recognition.start();
+      setIsRecording(true);
       setError("");
     } catch (err) {
-      console.error("Start recording error:", err);
       setError("Microphone permission denied");
       setIsRecording(false);
-    }
-  };
-
-  const toggleRecording = async () => {
-    if (isRecording) {
-      stopRecording();
-    } else {
-      await startRecording();
     }
   };
 
