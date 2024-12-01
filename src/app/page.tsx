@@ -68,10 +68,10 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex gap-4 mt-auto">
+          <div className="flex gap-4 mt-auto -mb-[2vh]">
             <button
               type="button"
-              className="flex-1 h-24 flex items-center justify-center gap-2 bg-white rounded-2xl text-black text-2xl font-medium"
+              className="flex-1 h-36 flex items-center justify-center gap-2 bg-white rounded-2xl text-black text-2xl font-medium"
             >
               🎤 Record
             </button>
@@ -79,7 +79,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={!input.trim() || isProcessing}
-              className="flex-1 h-24 flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex-1 h-36 flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isProcessing ? "Refining..." : "Refine"}
             </button>
