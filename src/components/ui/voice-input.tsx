@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,7 +12,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [fullTranscript, setFullTranscript] = useState("");
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [touchTimeout, setTouchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     try {
@@ -50,10 +50,17 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     } catch (err) {
       setError("Failed to initialize speech recognition");
     }
+
+    // Cleanup
+    return () => {
+      if (touchTimeout) {
+        clearTimeout(touchTimeout);
+      }
+    };
   }, []);
 
   const startRecording = async () => {
-    if (!recognition) return;
+    if (!recognition || isRecording) return;
 
     try {
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -72,34 +79,30 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     }
   };
 
-  // Touch event handlers
-  const handleTouchStart = async (e: React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
-    await startRecording();
+    const timeout = setTimeout(() => {
+      startRecording();
+    }, 200);
+    setTouchTimeout(timeout);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     e.preventDefault();
-    stopRecording();
-  };
-
-  // Mouse event handlers for desktop
-  const handleMouseDown = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    await startRecording();
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    e.preventDefault();
-    stopRecording();
-  };
-
-  // Handle case where mouse/touch leaves button while recording
-  const handleMouseLeave = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (isRecording) {
-      stopRecording();
+    if (touchTimeout) {
+      clearTimeout(touchTimeout);
+      setTouchTimeout(null);
     }
+    stopRecording();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (touchTimeout) {
+      clearTimeout(touchTimeout);
+      setTouchTimeout(null);
+    }
+    stopRecording();
   };
 
   if (error) {
@@ -114,15 +117,13 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
     <div className="space-y-2">
       <p className="text-sm text-zinc-400">Press and hold to record</p>
       <Button
-        ref={buttonRef}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        onTouchMove={handleTouchMove}
+        onTouchCancel={handleTouchEnd}
         variant={isRecording ? "destructive" : "default"}
         size="default"
-        className="touch-none select-none"
+        className="touch-none select-none w-full h-16"
       >
         <Mic className={`mr-2 h-4 w-4 ${isRecording ? "animate-pulse" : ""}`} />
         {isRecording ? "Recording..." : "Hold to Record"}
