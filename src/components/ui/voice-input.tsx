@@ -3,48 +3,40 @@ import { Button } from "@/components/ui/button";
 import { Mic, MicOff } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
-
-type SpeechRecognitionType = SpeechRecognition | webkitSpeechRecognition;
-
 interface VoiceInputProps {
-  onTranscriptComplete: (text: string) => void;
+  onTranscriptUpdate: (text: string) => void;
 }
 
-export const VoiceInput = ({ onTranscriptComplete }: VoiceInputProps) => {
+export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string>("");
-  const [recognition, setRecognition] = useState<SpeechRecognitionType | null>(
-    null
-  );
+  const [recognition, setRecognition] = useState<any>(null);
   const [fullTranscript, setFullTranscript] = useState("");
+  const [lastResultTime, setLastResultTime] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognitionAPI =
+        (window as any).SpeechRecognition ||
+        (window as any).webkitSpeechRecognition;
 
-      if (SpeechRecognition) {
+      if (SpeechRecognitionAPI) {
         try {
-          const recognitionInstance = new SpeechRecognition();
+          const recognitionInstance = new SpeechRecognitionAPI();
           recognitionInstance.continuous = true;
           recognitionInstance.interimResults = false;
 
-          recognitionInstance.onresult = (event: SpeechRecognitionEvent) => {
+          recognitionInstance.onresult = (event: any) => {
             const transcript =
               event.results[event.results.length - 1][0].transcript;
-            setFullTranscript((prev) => prev + " " + transcript);
+            const updatedTranscript = fullTranscript + " " + transcript;
+            setFullTranscript(updatedTranscript);
+            onTranscriptUpdate(updatedTranscript.trim());
+            setLastResultTime(Date.now());
           };
 
-          recognitionInstance.onerror = (
-            event: SpeechRecognitionErrorEvent
-          ) => {
-            setError("Microphone error: " + event.error);
+          recognitionInstance.onerror = (event: any) => {
+            setError(`Microphone error: ${event.error}`);
             setIsRecording(false);
           };
 
@@ -56,7 +48,7 @@ export const VoiceInput = ({ onTranscriptComplete }: VoiceInputProps) => {
         setError("Speech recognition is not supported in your browser");
       }
     }
-  }, [isRecording]);
+  }, []);
 
   const toggleRecording = async () => {
     if (!recognition) return;
@@ -64,7 +56,6 @@ export const VoiceInput = ({ onTranscriptComplete }: VoiceInputProps) => {
     if (!isRecording) {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        setFullTranscript("");
         recognition.start();
         setIsRecording(true);
         setError("");
@@ -72,11 +63,14 @@ export const VoiceInput = ({ onTranscriptComplete }: VoiceInputProps) => {
         setError("Microphone permission denied");
       }
     } else {
+      const timeSinceLastResult = Date.now() - lastResultTime;
+      if (timeSinceLastResult < 1000) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 - timeSinceLastResult)
+        );
+      }
       recognition.stop();
       setIsRecording(false);
-      if (fullTranscript.trim()) {
-        onTranscriptComplete(fullTranscript.trim());
-      }
     }
   };
 

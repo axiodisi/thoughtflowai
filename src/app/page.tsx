@@ -36,11 +36,7 @@ export default function Home() {
   };
 
   const handleVoiceTranscript = (text: string) => {
-    setInput((prevInput) => {
-      // If there's existing input, add a space before the new text
-      const separator = prevInput.trim() ? " " : "";
-      return prevInput + separator + text;
-    });
+    setInput(text);
   };
 
   return (
@@ -74,7 +70,7 @@ export default function Home() {
                 <h3 className="text-sm font-medium text-zinc-400 mb-3">
                   Or use voice input:
                 </h3>
-                <VoiceInput onTranscriptComplete={handleVoiceTranscript} />
+                <VoiceInput onTranscriptUpdate={handleVoiceTranscript} />
               </div>
             </div>
 
