@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, MicOff } from "lucide-react";
+import { Mic } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceInputProps {
@@ -8,90 +8,97 @@ interface VoiceInputProps {
 }
 
 export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
-  const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string>("");
+  const [isRecording, setIsRecording] = useState(false);
   const [recognition, setRecognition] = useState<any>(null);
   const [fullTranscript, setFullTranscript] = useState("");
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Initialize speech recognition
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const SpeechRecognitionAPI =
-        (window as any).webkitSpeechRecognition ||
-        (window as any).SpeechRecognition;
-
-      if (SpeechRecognitionAPI) {
-        const recognitionInstance = new SpeechRecognitionAPI();
-
-        // Mobile-specific settings
-        if (isMobile) {
-          recognitionInstance.continuous = false;
-          recognitionInstance.interimResults = false;
-        } else {
-          recognitionInstance.continuous = true;
-          recognitionInstance.interimResults = false;
-        }
-
-        recognitionInstance.lang = "en-US";
-
-        recognitionInstance.onresult = (event: any) => {
-          const transcript =
-            event.results[event.results.length - 1][0].transcript;
-          const newTranscript = fullTranscript + " " + transcript;
-          setFullTranscript(newTranscript.trim());
-          onTranscriptUpdate(newTranscript.trim());
-        };
-
-        recognitionInstance.onend = () => {
-          // On mobile, we need to manually restart if still recording
-          if (isRecording && isMobile) {
-            try {
-              recognitionInstance.start();
-            } catch (e) {
-              setIsRecording(false);
-            }
-          }
-        };
-
-        recognitionInstance.onerror = (event: any) => {
-          if (event.error === "no-speech") {
-            // Ignore no-speech error on mobile
-            if (!isMobile) {
-              setError("No speech detected");
-            }
-          } else if (event.error === "not-allowed") {
-            setError("Microphone access denied");
-          } else {
-            setError(`Error: ${event.error}`);
-          }
-          setIsRecording(false);
-        };
-
-        setRecognition(recognitionInstance);
-      } else {
-        setError("Speech recognition not supported in this browser");
+    try {
+      const SpeechRecognition =
+        window.webkitSpeechRecognition || window.SpeechRecognition;
+      if (!SpeechRecognition) {
+        setError("Speech recognition not supported");
+        return;
       }
-    }
-  }, [isRecording, fullTranscript, onTranscriptUpdate]);
 
-  const toggleRecording = async () => {
+      const recognitionInstance = new SpeechRecognition();
+      recognitionInstance.continuous = false;
+      recognitionInstance.interimResults = false;
+      recognitionInstance.lang = "en-US";
+
+      recognitionInstance.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        const newTranscript = fullTranscript + " " + transcript;
+        setFullTranscript(newTranscript.trim());
+        onTranscriptUpdate(newTranscript.trim());
+      };
+
+      recognitionInstance.onerror = (event: any) => {
+        if (event.error !== "no-speech") {
+          setError(`Microphone error: ${event.error}`);
+        }
+        setIsRecording(false);
+      };
+
+      recognitionInstance.onend = () => {
+        setIsRecording(false);
+      };
+
+      setRecognition(recognitionInstance);
+    } catch (err) {
+      setError("Failed to initialize speech recognition");
+    }
+  }, []);
+
+  const startRecording = async () => {
     if (!recognition) return;
 
     try {
-      if (!isRecording) {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        setFullTranscript("");
-        recognition.start();
-        setIsRecording(true);
-        setError("");
-      } else {
-        recognition.stop();
-        setIsRecording(false);
-      }
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      recognition.start();
+      setIsRecording(true);
+      setError("");
     } catch (err) {
       setError("Microphone permission denied");
+    }
+  };
+
+  const stopRecording = () => {
+    if (recognition && isRecording) {
+      recognition.stop();
       setIsRecording(false);
+    }
+  };
+
+  // Touch event handlers
+  const handleTouchStart = async (e: React.TouchEvent) => {
+    e.preventDefault();
+    await startRecording();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    stopRecording();
+  };
+
+  // Mouse event handlers for desktop
+  const handleMouseDown = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    await startRecording();
+  };
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    e.preventDefault();
+    stopRecording();
+  };
+
+  // Handle case where mouse/touch leaves button while recording
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isRecording) {
+      stopRecording();
     }
   };
 
@@ -104,23 +111,21 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   }
 
   return (
-    <div>
+    <div className="space-y-2">
+      <p className="text-sm text-zinc-400">Press and hold to record</p>
       <Button
-        onClick={toggleRecording}
+        ref={buttonRef}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         variant={isRecording ? "destructive" : "default"}
         size="default"
+        className="touch-none select-none"
       >
-        {isRecording ? (
-          <>
-            <MicOff className="mr-2 h-4 w-4" />
-            Stop Recording
-          </>
-        ) : (
-          <>
-            <Mic className="mr-2 h-4 w-4" />
-            Start Recording
-          </>
-        )}
+        <Mic className={`mr-2 h-4 w-4 ${isRecording ? "animate-pulse" : ""}`} />
+        {isRecording ? "Recording..." : "Hold to Record"}
       </Button>
     </div>
   );
