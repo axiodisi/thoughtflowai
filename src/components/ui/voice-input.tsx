@@ -111,7 +111,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
       <Button
         onClick={toggleRecording}
         variant="default"
-        className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-pink-600 hover:bg-pink-700 transition-colors disabled:opacity-50"
+        className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 hover:opacity-90 transition-opacity disabled:opacity-50"
         disabled={isProcessing}
       >
         {isProcessing ? (
