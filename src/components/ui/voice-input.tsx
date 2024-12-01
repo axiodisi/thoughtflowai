@@ -12,100 +12,85 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const [error, setError] = useState<string>("");
   const [recognition, setRecognition] = useState<any>(null);
   const [fullTranscript, setFullTranscript] = useState("");
-  const [lastResultTime, setLastResultTime] = useState<number>(0);
-  const [isMobileChrome, setIsMobileChrome] = useState(false);
 
+  // Initialize speech recognition
   useEffect(() => {
-    // Check if we're on Android Chrome
-    const isAndroid = /Android/i.test(navigator.userAgent);
-    const isChrome = /Chrome/i.test(navigator.userAgent);
-    setIsMobileChrome(isAndroid && isChrome);
-
     if (typeof window !== "undefined") {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const SpeechRecognitionAPI =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
+        (window as any).webkitSpeechRecognition ||
+        (window as any).SpeechRecognition;
 
       if (SpeechRecognitionAPI) {
-        try {
-          const recognitionInstance = new SpeechRecognitionAPI();
+        const recognitionInstance = new SpeechRecognitionAPI();
+
+        // Mobile-specific settings
+        if (isMobile) {
+          recognitionInstance.continuous = false;
+          recognitionInstance.interimResults = false;
+        } else {
           recognitionInstance.continuous = true;
           recognitionInstance.interimResults = false;
-          // Add specific settings for Android
-          if (isAndroid) {
-            recognitionInstance.continuous = false; // Single utterance mode works better on Android
-            recognitionInstance.maxAlternatives = 1;
-          }
-
-          recognitionInstance.onstart = () => {
-            console.log("Recognition started");
-            setIsRecording(true);
-          };
-
-          recognitionInstance.onend = () => {
-            console.log("Recognition ended");
-            // On Android, we need to restart for continuous recording
-            if (isRecording && isAndroid) {
-              try {
-                recognitionInstance.start();
-              } catch (e) {
-                console.log("Restart failed:", e);
-              }
-            } else {
-              setIsRecording(false);
-            }
-          };
-
-          recognitionInstance.onresult = (event: any) => {
-            console.log("Got result:", event);
-            const transcript =
-              event.results[event.results.length - 1][0].transcript;
-            const updatedTranscript = fullTranscript + " " + transcript;
-            setFullTranscript(updatedTranscript);
-            onTranscriptUpdate(updatedTranscript.trim());
-            setLastResultTime(Date.now());
-          };
-
-          recognitionInstance.onerror = (event: any) => {
-            console.error("Recognition error:", event);
-            if (event.error === "no-speech") {
-              // Don't show error for no speech on Android
-              if (!isAndroid) {
-                setError("No speech detected. Please try again.");
-              }
-            } else {
-              setError(`Microphone error: ${event.error}`);
-              setIsRecording(false);
-            }
-          };
-
-          setRecognition(recognitionInstance);
-        } catch (err) {
-          console.error("Init error:", err);
-          setError("Failed to initialize speech recognition");
         }
+
+        recognitionInstance.lang = "en-US";
+
+        recognitionInstance.onresult = (event: any) => {
+          const transcript =
+            event.results[event.results.length - 1][0].transcript;
+          const newTranscript = fullTranscript + " " + transcript;
+          setFullTranscript(newTranscript.trim());
+          onTranscriptUpdate(newTranscript.trim());
+        };
+
+        recognitionInstance.onend = () => {
+          // On mobile, we need to manually restart if still recording
+          if (isRecording && isMobile) {
+            try {
+              recognitionInstance.start();
+            } catch (e) {
+              setIsRecording(false);
+            }
+          }
+        };
+
+        recognitionInstance.onerror = (event: any) => {
+          if (event.error === "no-speech") {
+            // Ignore no-speech error on mobile
+            if (!isMobile) {
+              setError("No speech detected");
+            }
+          } else if (event.error === "not-allowed") {
+            setError("Microphone access denied");
+          } else {
+            setError(`Error: ${event.error}`);
+          }
+          setIsRecording(false);
+        };
+
+        setRecognition(recognitionInstance);
       } else {
-        setError("Speech recognition is not supported in your browser");
+        setError("Speech recognition not supported in this browser");
       }
     }
-  }, []);
+  }, [isRecording, fullTranscript, onTranscriptUpdate]);
 
   const toggleRecording = async () => {
     if (!recognition) return;
 
-    if (!isRecording) {
-      try {
+    try {
+      if (!isRecording) {
         await navigator.mediaDevices.getUserMedia({ audio: true });
-        // Reset error state
-        setError("");
-        // Start recognition
+        setFullTranscript("");
         recognition.start();
-      } catch (err) {
-        console.error("Toggle recording error:", err);
-        setError("Microphone permission denied");
+        setIsRecording(true);
+        setError("");
+      } else {
+        recognition.stop();
+        setIsRecording(false);
       }
-    } else {
-      recognition.stop();
+    } catch (err) {
+      setError("Microphone permission denied");
       setIsRecording(false);
     }
   };
@@ -120,12 +105,6 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
 
   return (
     <div>
-      {isMobileChrome && (
-        <p className="text-xs text-zinc-400 mb-2">
-          Note: For best results on Android, speak clearly and pause between
-          phrases
-        </p>
-      )}
       <Button
         onClick={toggleRecording}
         variant={isRecording ? "destructive" : "default"}
