@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { AlertCircle } from "lucide-react";
-import { VoiceInput } from "@/components/ui/voice-input";
 
 export default function Home() {
   const [input, setInput] = useState("");
@@ -35,13 +34,13 @@ export default function Home() {
     <div className="fixed inset-0 bg-black overflow-hidden">
       <div className="fixed inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-500/20" />
 
-      <main className="fixed inset-0 flex flex-col p-8">
-        <h1 className="text-4xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text">
+      <main className="fixed inset-0 flex flex-col px-8 pt-8 pb-4">
+        <h1 className="text-4xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text mb-4">
           Thought Refiner
         </h1>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
-          <div className="bg-zinc-900/80 rounded-2xl p-4 flex gap-4 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)]">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          <div className="bg-zinc-900/80 rounded-2xl p-4 flex gap-4 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] mb-4">
             <AlertCircle className="h-6 w-6 shrink-0 text-orange-500" />
             <p className="text-base text-zinc-200">
               Your input is processed securely and not stored. Feel free to
@@ -49,7 +48,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="h-[25vh]">
+          <div className="w-full h-[25vh] mb-4">
             <textarea
               placeholder="Get it all out... Type (or paste) your raw thoughts here. Don't worry about formatting or clarity - just let it flow."
               value={input}
@@ -59,7 +58,7 @@ export default function Home() {
           </div>
 
           {refinedText && (
-            <div className="h-[25vh]">
+            <div className="w-full h-[25vh] mb-4">
               <div className="h-full rounded-2xl bg-zinc-900/80 p-4 text-base text-zinc-200 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)]">
                 <h3 className="text-xl font-medium bg-gradient-to-r from-pink-500 to-purple-500 inline-block text-transparent bg-clip-text mb-2">
                   Refined Version:
@@ -69,10 +68,10 @@ export default function Home() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-6 mt-auto pt-4">
+          <div className="flex gap-4 mt-auto">
             <button
               type="button"
-              className="h-32 flex items-center justify-center gap-2 bg-white rounded-xl text-black text-2xl font-medium"
+              className="flex-1 h-24 flex items-center justify-center gap-2 bg-white rounded-2xl text-black text-2xl font-medium"
             >
               🎤 Record
             </button>
@@ -80,7 +79,7 @@ export default function Home() {
             <button
               type="submit"
               disabled={!input.trim() || isProcessing}
-              className="h-32 flex items-center justify-center gap-3 rounded-xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="flex-1 h-24 flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {isProcessing ? "Refining..." : "Refine"}
             </button>
