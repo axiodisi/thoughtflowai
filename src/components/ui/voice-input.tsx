@@ -65,7 +65,6 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   };
 
   const processAudio = async (audioBlob: Blob) => {
-    // Convert webm to mp3 if needed
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.webm");
 
@@ -108,27 +107,27 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   }
 
   return (
-    <div>
+    <div className="h-full">
       <Button
         onClick={toggleRecording}
         variant={isRecording ? "destructive" : "default"}
-        size="default"
+        className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 hover:opacity-90 transition-opacity disabled:opacity-50"
         disabled={isProcessing}
       >
         {isProcessing ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Processing...</span>
           </>
         ) : isRecording ? (
           <>
-            <MicOff className="mr-2 h-4 w-4" />
-            Stop Recording
+            <MicOff className="h-6 w-6" />
+            <span>Stop Recording</span>
           </>
         ) : (
           <>
-            <Mic className="mr-2 h-4 w-4" />
-            Start Recording
+            <Mic className="h-6 w-6" />
+            <span>Start Recording</span>
           </>
         )}
       </Button>
