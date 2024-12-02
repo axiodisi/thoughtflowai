@@ -1,8 +1,8 @@
 // app/api/transcribe/route.ts
 import { NextResponse } from "next/server";
+import { kv } from "@vercel/kv";
 import OpenAI from "openai";
 
-// New way to configure route options in Next.js App Router
 export const runtime = "edge";
 export const maxDuration = 30;
 
@@ -11,16 +11,19 @@ const openai = new OpenAI({
 });
 
 export async function POST(req: Request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return NextResponse.json(
-      { error: "OpenAI API key not configured" },
-      { status: 500 }
-    );
-  }
-
   try {
     const formData = await req.formData();
     const audioFile = formData.get("audio");
+    const accessCode = formData.get("accessCode")?.toString() || "";
+
+    // Check access code
+    const usagesLeft = await kv.get<number>(accessCode);
+    if (!usagesLeft || usagesLeft <= 0) {
+      return NextResponse.json(
+        { error: "Invalid or expired access code" },
+        { status: 403 }
+      );
+    }
 
     if (!audioFile || !(audioFile instanceof Blob)) {
       return NextResponse.json(

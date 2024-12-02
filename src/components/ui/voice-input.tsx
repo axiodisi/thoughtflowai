@@ -5,9 +5,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
+  accessCode?: string | null;
 }
 
-export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
+export const VoiceInput = ({
+  onTranscriptUpdate,
+  accessCode,
+}: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>("");
@@ -64,6 +68,7 @@ export const VoiceInput = ({ onTranscriptUpdate }: VoiceInputProps) => {
   const processAudio = async (audioBlob: Blob) => {
     const formData = new FormData();
     formData.append("audio", audioBlob, "recording.webm");
+    formData.append("accessCode", accessCode || "");
 
     const response = await fetch("/api/transcribe", {
       method: "POST",

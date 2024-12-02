@@ -3,22 +3,28 @@
 import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { VoiceInput } from "@/components/ui/voice-input";
+import { AccessCodeDialog } from "@/components/access-code-dialog";
 
 export default function Home() {
   const [input, setInput] = useState("");
   const [refinedText, setRefinedText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [accessCode, setAccessCode] = useState<string | null>(null);
+
+  const handleCodeSubmit = (code: string) => {
+    setAccessCode(code);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || !accessCode) return;
 
     setIsProcessing(true);
     try {
       const response = await fetch("/api/refine", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input }),
+        body: JSON.stringify({ text: input, accessCode }),
       });
 
       const data = await response.json();
@@ -33,6 +39,7 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 bg-black">
+      <AccessCodeDialog onCodeSubmit={handleCodeSubmit} />
       <div className="fixed inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-500/20" />
 
       <main
@@ -71,7 +78,10 @@ export default function Home() {
 
             <div className="flex gap-4 mt-auto">
               <div className="flex-1 h-32">
-                <VoiceInput onTranscriptUpdate={setInput} />
+                <VoiceInput
+                  onTranscriptUpdate={setInput}
+                  accessCode={accessCode}
+                />
               </div>
 
               <button
