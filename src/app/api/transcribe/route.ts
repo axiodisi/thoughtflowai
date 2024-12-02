@@ -1,4 +1,3 @@
-// app/api/transcribe/route.ts
 import { NextResponse } from "next/server";
 import { kv } from "@vercel/kv";
 import OpenAI from "openai";
@@ -16,7 +15,6 @@ export async function POST(req: Request) {
     const audioFile = formData.get("audio");
     const accessCode = formData.get("accessCode")?.toString() || "";
 
-    // Check access code
     const usagesLeft = await kv.get<number>(accessCode);
     if (!usagesLeft || usagesLeft <= 0) {
       return NextResponse.json(
@@ -33,9 +31,8 @@ export async function POST(req: Request) {
     }
 
     const file = new File([audioFile], "audio.webm", { type: audioFile.type });
-
     const response = await openai.audio.transcriptions.create({
-      file: file,
+      file,
       model: "whisper-1",
       language: "en",
     });

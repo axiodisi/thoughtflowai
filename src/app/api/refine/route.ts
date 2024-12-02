@@ -13,9 +13,10 @@ export async function POST(req: Request) {
 
   try {
     const { text, accessCode } = await req.json();
-
-    // Check and decrement access code usage
+    console.log("Received code:", accessCode);
     const usagesLeft = await kv.get<number>(accessCode);
+    console.log("Uses left:", usagesLeft);
+
     if (!usagesLeft || usagesLeft <= 0) {
       return NextResponse.json(
         { error: "Invalid or expired access code" },
