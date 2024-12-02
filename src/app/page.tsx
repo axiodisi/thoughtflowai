@@ -47,18 +47,14 @@ export default function Home() {
           <div className="bg-zinc-900/80 rounded-2xl p-6 flex gap-4 border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] mb-6">
             <AlertCircle className="h-6 w-6 shrink-0 text-orange-500" />
             <p className="text-lg text-zinc-200">
-              Need to get your message across clearly? Speak or type your
-              thoughts here - just let it flow naturally. Whether it&apos;s an
-              important email, a heartfelt message, or any communication that
-              matters to you, we&apos;ll help refine it for maximum impact.
-              Nothing is saved - this is your private space to organize your
-              thoughts.
+              Your input is processed securely and not stored. Feel free to
+              express yourself freely.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <textarea
-              placeholder="Get it all out... Type, paste, or click 'Speak' below to share your thoughts. Don't worry about structure or clarity - we'll help with that."
+              placeholder="Whether it's an important email, a heartfelt message, or any communication that matters - type, paste, or click 'Speak' below to share your thoughts. Don't worry about structure or clarity - we'll help refine your message for maximum impact."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="w-full h-[25vh] rounded-2xl bg-zinc-900/80 p-4 text-xl text-zinc-200 placeholder:text-zinc-500 focus:outline-none border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] mb-4"
