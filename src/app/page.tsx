@@ -1,6 +1,7 @@
+// page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle } from "lucide-react";
 import { VoiceInput } from "@/components/ui/voice-input";
 import { AccessCodeDialog } from "@/components/access-code-dialog";
@@ -11,8 +12,18 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [accessCode, setAccessCode] = useState<string | null>(null);
 
+  useEffect(() => {
+    const saved = localStorage.getItem("thoughtflow-code");
+    if (saved) setAccessCode(saved);
+  }, []);
+
   const handleCodeSubmit = (code: string) => {
     setAccessCode(code);
+  };
+
+  const handleCodeExpired = () => {
+    localStorage.removeItem("thoughtflow-code");
+    setAccessCode(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,8 +38,12 @@ export default function Home() {
         body: JSON.stringify({ text: input, accessCode }),
       });
 
+      if (!response.ok) {
+        handleCodeExpired();
+        return;
+      }
+
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error);
       setRefinedText(data.refined);
     } catch (error) {
       console.error(error);
@@ -39,7 +54,7 @@ export default function Home() {
 
   return (
     <div className="fixed inset-0 bg-black">
-      <AccessCodeDialog onCodeSubmit={handleCodeSubmit} />
+      {!accessCode && <AccessCodeDialog onCodeSubmit={handleCodeSubmit} />}
       <div className="fixed inset-0 bg-gradient-to-br from-pink-500/20 via-purple-500/20 to-orange-500/20" />
 
       <main
@@ -81,12 +96,13 @@ export default function Home() {
                 <VoiceInput
                   onTranscriptUpdate={setInput}
                   accessCode={accessCode}
+                  onCodeExpired={handleCodeExpired}
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={!input.trim() || isProcessing}
+                disabled={!input.trim() || isProcessing || !accessCode}
                 className="flex-1 h-32 flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium text-white bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {isProcessing ? "Refining..." : "Refine"}

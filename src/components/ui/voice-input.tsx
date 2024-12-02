@@ -1,3 +1,4 @@
+// voice-input.tsx
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
@@ -6,11 +7,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface VoiceInputProps {
   onTranscriptUpdate: (text: string) => void;
   accessCode?: string | null;
+  onCodeExpired: () => void;
 }
 
 export const VoiceInput = ({
   onTranscriptUpdate,
   accessCode,
+  onCodeExpired,
 }: VoiceInputProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -20,6 +23,11 @@ export const VoiceInput = ({
   const audioChunks = useRef<Blob[]>([]);
 
   const startRecording = async () => {
+    if (!accessCode) {
+      setError("Access code required");
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -75,6 +83,11 @@ export const VoiceInput = ({
       body: formData,
     });
 
+    if (response.status === 403) {
+      onCodeExpired();
+      return;
+    }
+
     if (!response.ok) {
       throw new Error("Failed to transcribe audio");
     }
@@ -114,7 +127,7 @@ export const VoiceInput = ({
         onClick={toggleRecording}
         variant="default"
         className="w-full h-full flex items-center justify-center gap-3 rounded-2xl text-2xl font-medium bg-gradient-to-r from-red-500 via-pink-500 to-rose-500 hover:opacity-90 transition-opacity disabled:opacity-50"
-        disabled={isProcessing}
+        disabled={isProcessing || !accessCode}
       >
         {isProcessing ? (
           <>

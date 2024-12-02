@@ -1,33 +1,29 @@
-// components/access-code-dialog.tsx
-import React, { useEffect, useState } from "react";
-
-interface AccessCodeDialogProps {
-  onCodeSubmit: (code: string) => void;
-}
-
+// access-code-dialog.tsx
 export const AccessCodeDialog = ({ onCodeSubmit }: AccessCodeDialogProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [code, setCode] = useState("");
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    const savedCode = localStorage.getItem("thoughtflow-code");
-    if (!savedCode) {
-      setOpen(true);
-    } else {
-      onCodeSubmit(savedCode);
-    }
-  }, [onCodeSubmit]);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const response = await fetch("/api/refine", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "test", accessCode: code }),
+    });
+
+    if (!response.ok) {
+      setError("Invalid access code");
+      return;
+    }
+
     localStorage.setItem("thoughtflow-code", code);
     onCodeSubmit(code);
     setOpen(false);
   };
 
-  if (!open) return null;
-
-  return (
+  return open ? (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-zinc-900/95 border border-zinc-800 rounded-2xl p-6 w-full max-w-md">
         <h2 className="text-2xl font-medium bg-gradient-to-r from-pink-500 via-purple-500 to-orange-500 inline-block text-transparent bg-clip-text mb-3">
@@ -36,6 +32,7 @@ export const AccessCodeDialog = ({ onCodeSubmit }: AccessCodeDialogProps) => {
         <p className="text-zinc-300 text-lg mb-6">
           Join us in making communication clearer, one thought at a time.
         </p>
+        {error && <div className="text-red-500 mb-4">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
@@ -53,5 +50,5 @@ export const AccessCodeDialog = ({ onCodeSubmit }: AccessCodeDialogProps) => {
         </form>
       </div>
     </div>
-  );
+  ) : null;
 };
