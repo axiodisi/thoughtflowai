@@ -1,3 +1,9 @@
+import { useState, useEffect } from "react";
+
+interface AccessCodeDialogProps {
+  onCodeSubmit: (code: string) => void;
+}
+
 export const AccessCodeDialog = ({ onCodeSubmit }: AccessCodeDialogProps) => {
   const [open, setOpen] = useState(true);
   const [code, setCode] = useState("");
