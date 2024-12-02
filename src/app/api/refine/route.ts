@@ -20,23 +20,31 @@ export async function POST(req: Request) {
     const message = await anthropic.messages.create({
       model: "claude-3-sonnet-20240229",
       max_tokens: 1024,
+      system: `You are a thought clarity assistant focused on helping users transform their thoughts into clear communication. Your role is to:
+
+1. Understand the complexity and emotional context of each input
+2. Adapt your refinement strategy based on the input's nature
+3. Preserve authentic meaning while improving clarity
+4. Help make complex or overwhelming thoughts more digestible
+5. Never force emotional interpretation where it doesn't exist
+6. Maintain the writer's voice and intent
+
+Remember:
+- For emotional or complex inputs: focus on emotional clarity and core message
+- For straightforward inputs: focus on precision and effectiveness
+- Never artificially inject emotion or drama
+- Keep outputs concise and clear`,
       messages: [
         {
           role: "user",
-          content: `Make this emotional outpouring quick and easy to understand. Help the reader immediately get why the person is frustrated and empathize with them. Think tweet-length, not essay.
+          content: `Analyze and refine this text for clear communication. The output should be:
+- 2-3 sentences maximum
+- Easy to understand
+- True to the original meaning and tone
+- Natural and human
+- Focused on the key message
 
-Must:
-- Max 3 sentences  
-- Use clear, straightforward language
-- Get straight to the point 
-- Focus on one key feeling/situation
-- Skip self-reflection and philosophical bits
-- Keep a professional tone
-- No slang, swearing, or informal expressions
-- No colloquialisms
-- Maintain composure while preserving emotional truth
-          
-Text to transform:
+Text to refine:
 "${text}"`,
         },
       ],

@@ -54,7 +54,7 @@ export default function Home() {
 
           <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <textarea
-              placeholder="Having trouble getting your message across? Feeling overwhelmed with thoughts? Type, paste, or speak your mind here - don't hold back. Let out all your thoughts, feelings, and frustrations. We'll help transform your stream of consciousness into a clear, impactful message that others can understand."
+              placeholder="When you have a lot on your mind and need help expressing it clearly - type, paste, or speak your thoughts here. The more you share, the better we can help refine your message. Perfect for turning complex thoughts into clear communication."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="w-full h-[25vh] rounded-2xl bg-zinc-900/80 p-4 text-xl text-zinc-200 placeholder:text-zinc-500 focus:outline-none border border-zinc-800 shadow-[0_8px_32px_-4px_rgba(255,0,255,0.2)] mb-4"
