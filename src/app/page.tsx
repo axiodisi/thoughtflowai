@@ -48,10 +48,11 @@ export default function Home() {
             <AlertCircle className="h-6 w-6 shrink-0 text-orange-500" />
             <p className="text-lg text-zinc-200">
               Need to get your message across clearly? Speak or type your
-              thoughts here - just let it flow naturally. Whether it's an
+              thoughts here - just let it flow naturally. Whether it&apos;s an
               important email, a heartfelt message, or any communication that
-              matters to you, we'll help refine it for maximum impact. Nothing
-              is saved - this is your private space to organize your thoughts.
+              matters to you, we&apos;ll help refine it for maximum impact.
+              Nothing is saved - this is your private space to organize your
+              thoughts.
             </p>
           </div>
 
